@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Currency Converter (Dynamic)</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f4f9;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .converter {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      max-width: 360px;
+      width: 100%;
+    }
+    h2 { text-align: center; }
+    select, input, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+    button {
+      background: #007bff;
+      color: #fff;
+      cursor: pointer;
+    }
+    button:hover { background: #0056b3; }
+    #result { text-align: center; font-weight: bold; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="converter">
+    <h2>Currency Converter</h2>
+    <input type="number" id="amount" placeholder="Enter amount" value="1" min="0" step="any" />
+    <select id="fromCurrency"></select>
+    <select id="toCurrency"></select>
+    <button id="convertButton">Convert</button>
+    <div id="result">Result will show here</div>
+  </div>
+
+  <script>
+    const amountEl = document.getElementById("amount");
+    const fromCurrency = document.getElementById("fromCurrency");
+    const toCurrency = document.getElementById("toCurrency");
+    const convertButton = document.getElementById("convertButton");
+    const resultEl = document.getElementById("result");
+
+    // ✅ Fetch list of currencies dynamically
+    async function loadCurrencies() {
+      try {
+        const res = await fetch("https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies.json");
+        const data = await res.json();
+
+        Object.keys(data).forEach(code => {
+          const option1 = document.createElement("option");
+          option1.value = code;
+          option1.textContent = `${code.toUpperCase()} - ${data[code]}`;
+          fromCurrency.appendChild(option1);
+
+          const option2 = document.createElement("option");
+          option2.value = code;
+          option2.textContent = `${code.toUpperCase()} - ${data[code]}`;
+          toCurrency.appendChild(option2);
+        });
+
+        // set defaults
+        fromCurrency.value = "top";
+        toCurrency.value = "usd";
+      } catch (err) {
+        console.error("Error loading currencies", err);
+      }
+    }
+
+    async function fetchRates(base) {
+      const url = `https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${base}.json`;
+      const resp = await fetch(url);
+      const data = await resp.json();
+      return data[base];
+    }
+
+    async function convertCurrency() {
+      const amt = parseFloat(amountEl.value);
+      const from = fromCurrency.value;
+      const to = toCurrency.value;
+
+      if (isNaN(amt) || amt <= 0) {
+        resultEl.textContent = "Please enter a valid positive amount.";
+        return;
+      }
+
+      resultEl.textContent = "Converting...";
+
+      try {
+        const rates = await fetchRates(from);
+        const rate = rates[to];
+        if (rate === undefined) {
+          resultEl.textContent = `Conversion from ${from} to ${to} not found.`;
+          return;
+        }
+        const converted = amt * rate;
+        resultEl.textContent = `${amt} ${from.toUpperCase()} = ${converted.toFixed(4)} ${to.toUpperCase()}`;
+      } catch (error) {
+        resultEl.textContent = "Error during conversion.";
+      }
+    }
+
+    convertButton.addEventListener("click", convertCurrency);
+
+    // load currencies on page load
+    loadCurrencies();
+  </script>
+</body>
+</html>
